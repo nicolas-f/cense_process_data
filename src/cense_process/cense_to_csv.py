@@ -1,5 +1,7 @@
 import sys
 import json
+import time
+
 import h5py
 import fsspec
 import argparse
@@ -25,17 +27,21 @@ def main():
     documents = fetch_hdf5_files(search_url)
     day_occurrences = dict()
     doc_count = len(documents)
-    for id, doc in enumerate(documents):
-        url = doc["url"]
-        print(f"Connect to {url} {id+1}/{doc_count}")
-        with fsspec.open(url, mode="rb") as remote_f:
-            if hasattr(remote_f, "open"):
-                remote_f = remote_f.open()
+    try:
+        for doc_id, doc in enumerate(documents):
+            url = doc["url"]
+            print(f"Connect to {url} {doc_id + 1}/{doc_count}")
+            start = time.time()
+            with fsspec.open(url, mode="rb") as remote_f:
+                if hasattr(remote_f, "open"):
+                    remote_f = remote_f.open()
 
-            f = h5py.File(remote_f)
-            for day in f.keys():
-                day_occurrences[day] = 1 + day_occurrences.get(day, 0)
-    print(f"day_occurrences: {day_occurrences}")
+                f = h5py.File(remote_f)
+                for day in f.keys():
+                    day_occurrences[day] = 1 + day_occurrences.get(day, 0)
+            print(f"Fetch in {round(time.time() - start, 2)} seconds")
+    finally:
+        print(f"day_occurrences: {day_occurrences}")
 
 if __name__ == "__main__":
     main()
