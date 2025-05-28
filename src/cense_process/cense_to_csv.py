@@ -69,9 +69,9 @@ def fetch_slow_day_data(doc):
             mac = f.attrs["mac"].replace(":", "")
             file_name = f"{year_month}_{day}_{mac}_{lat}_{lon}.csv"
             if year_month in f:
-                year_month = f[year_month]
-                if day in year_month:
-                    day_group = year_month[day]
+                year_month_group = f[year_month]
+                if day in year_month_group:
+                    day_group = year_month_group[day]
                     columns = [column_name for column_name, column_type in day_group["slow_1s"].dtype.descr]
                     with open(file_name, 'w', newline='') as csvfile:
                         writer = csv.DictWriter(csvfile, fieldnames=columns)
