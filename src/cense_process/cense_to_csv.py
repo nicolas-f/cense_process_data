@@ -17,6 +17,13 @@ def fetch_hdf5_files(api_url):
                 sensors.append(document)
     return sensors
 
+fsspec_caching = {
+    "cache_type": "blockcache",  # block cache stores blocks of fixed size and uses eviction using a LRU strategy.
+    "block_size": 8
+    * 1024
+    * 1024,  # size in bytes per block, adjust depends on the file size but the recommended size is in the MB
+}
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--api_url", default="https://entrepot.recherche.data.gouv.fr")
@@ -30,16 +37,17 @@ def main():
     try:
         for doc_id, doc in enumerate(documents):
             url = doc["url"]
+            print(doc)
+            doc_size = doc["size_in_bytes"]
             print(f"Connect to {url} {doc_id + 1}/{doc_count}")
             start = time.time()
-            with fsspec.open(url, mode="rb") as remote_f:
-                if hasattr(remote_f, "open"):
-                    remote_f = remote_f.open()
-
+            with fsspec.open(url, mode="rb", **fsspec_caching) as remote_f:
                 f = h5py.File(remote_f)
-                for day in f.keys():
-                    day_occurrences[day] = 1 + day_occurrences.get(day, 0)
-            print(f"Fetch in {round(time.time() - start, 2)} seconds")
+                for year_month in f.keys():
+                    for day in f[year_month]:
+                        key = f"{year_month}_{day}"
+                        day_occurrences[key] = 1 + day_occurrences.get(key, 0)
+            print(f"Fetch in {round(time.time() - start, 2)} seconds (document is {round(doc_size / 1024 ** 2, 2)} MB)")
     finally:
         print(f"day_occurrences: {day_occurrences}")
 
