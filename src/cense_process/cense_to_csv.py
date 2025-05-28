@@ -1,3 +1,4 @@
+import csv
 import time
 import h5py
 import argparse
@@ -49,6 +50,45 @@ def fetch_sensors_per_day(documents):
         print(f"day_occurrences: {day_occurrences}")
     return day_occurrences
 
+def fetch_slow_day_data(doc):
+    url = doc["url"]
+    print(f"Connect to {url}")
+    start = time.time()
+    remote_f = remfile.File(url)
+    if hasattr(remote_f, "open"):
+        remote_f = remote_f.open()
+    year_month = doc["year_month"]
+    day = doc["day"]
+    with h5py.File(remote_f, 'r') as f:
+        lat = f.attrs["lat"]
+        lon = f.attrs["long"]
+        mac = f.attrs["mac"].replace(":", "")
+        file_name = f"{year_month}_{day}_{mac}_{lat}_{lon}.csv"
+        if year_month in f:
+            year_month = f[year_month]
+            if day in year_month:
+                day_group = year_month[day]
+                columns = [column_name for column_name, column_type in day_group["slow_1s"].dtype.descr]
+                with open(file_name, 'w', newline='') as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=columns)
+                    writer.writeheader()
+                    for row in day_group["slow_1s"]:
+                        writer.writerow(dict(zip(columns, row)))
+
+
+
+def fetch_all_sensors_slow(documents, year_month, day):
+    for doc in documents:
+        doc["year_month"] = year_month
+        doc["day"] = day
+    doc_id = 0
+    doc_count = len(documents)
+    fetch_slow_day_data(documents[20])
+    # with multiprocessing.Pool(12) as p:
+    #     for res in p.imap_unordered(fetch_slow_day_data, documents):
+    #         print(f"Done {doc_id + 1}/{doc_count}")
+    #         doc_id += 1
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -58,7 +98,10 @@ def main():
     search_url = f"{args.api_url}/api/search?q={args.project_name}&per_page=1000"
     print(f"search_url: {search_url}")
     documents = fetch_hdf5_files(search_url)
-    day_occurrences = fetch_sensors_per_day(documents)
+    #day_occurrences = fetch_sensors_per_day(documents)
+    year_month = "2020_01"
+    day = "20"
+    fetch_all_sensors_slow(documents, year_month, day)
 
 if __name__ == "__main__":
     main()
