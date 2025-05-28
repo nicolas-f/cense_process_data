@@ -1,7 +1,6 @@
 importlib-metadata>=8.7.0
 h5py>=3.13.0
-fsspec>=2025.5.1
-requests>=2.32.3
-aiohttp>=3.12.2
 pytest>=8.3.5
 setuptools>=78.1.0
+remfile>=0.1.13
+urllib3>=2.4.0
